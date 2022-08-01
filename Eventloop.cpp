@@ -22,30 +22,27 @@ void* worker(void* p_data) {
     return NULL;
 }
 
-// struct dog{
-//     char *name;
-//     int  age;
-// }dog1 = {"Tom", 2};
- 
 int main() {
     eventfd_t count;
     struct epoll_event event, events[EPOLL_MAX_EVENTS];
     pthread_t p_main = pthread_self();
-    int epoll_fd = epoll_create1(EPOLL_CLOEXEC);
+    int epoll_fd = epoll_create1(EPOLL_CLOEXEC);      // 创建 epoll 对象
 
     int event_fd = eventfd(0, EFD_NONBLOCK | EFD_SEMAPHORE);
     printf("event_fd = %d\n", event_fd);
     event.data.fd = event_fd;
     event.events = EPOLLIN;
-    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, event_fd, &event);
+    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, event_fd, &event);   // 监听可读事件
  
     pthread_t p_worker;
     pthread_create(&p_worker, NULL, worker, &event_fd);
  
     for (;;) {
         // printf("main thread wait events...\n");
+        // 开始等待事件发生
         int len = epoll_wait(epoll_fd, events, EPOLL_MAX_EVENTS, -1);
         // printf("len of epoll_wait = %d\n", len);
+        // 开始处理事件
         for (int i = 0; i < len; i++) {
             if (events[i].events == EPOLLIN) {
                 eventfd_read(event_fd, &count);
