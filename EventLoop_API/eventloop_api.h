@@ -14,7 +14,7 @@ class EventLoop {
     * @brief EventLoop    
     * @param handler    
     */   
-    //explicit EventLoop(EventHandlerSharedPtr handler);   
+    explicit EventLoop(EventHandlerSharedPtr handler);   
     /**    
     * @brief start    
     * @return    
