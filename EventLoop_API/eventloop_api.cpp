@@ -13,21 +13,31 @@
 // #include <iostream>
 // using namespace std;
 static const int EPOLL_MAX_EVENTS = 16;
-struct epoll_event event, events[EPOLL_MAX_EVENTS];
-int event_fd = eventfd(0, EFD_NONBLOCK | EFD_SEMAPHORE);
-struct EventHandlerSharedPtr{
-    
-};
-EventLoop::EventLoop(EventHandlerSharedPtr handler){
-    
+
+EventLoop::EventLoop()
+    : epoll_fd (EPOLL_FD_INVALID)
+    , event_fd(0)
+{
+}
+
+EventLoop::EventLoop(EventHandlerSharedPtr handler)
+    : epoll_fd (EPOLL_FD_INVALID)
+    , event_fd(0)
+    , mHandler(handler)
+{
+}
+
+EventLoop::~EventLoop() {
+    stop();
 }
 
 bool EventLoop::start(){
     printf("start!");
     eventfd_t count;
     // struct epoll_event event, events[EPOLL_MAX_EVENTS];
-    int epoll_fd = epoll_create1(EPOLL_CLOEXEC);      // 创建 epoll 对象
-    // int event_fd = eventfd(0, EFD_NONBLOCK | EFD_SEMAPHORE);
+    epoll_fd = epoll_create1(EPOLL_CLOEXEC);      // 创建 epoll 对象
+    event_fd = eventfd(0, EFD_NONBLOCK | EFD_SEMAPHORE);
+    std::thread worker1(&EventLoop::worker, this);
         for (;;) {
         // printf("main thread wait events...\n");
         // 开始等待事件发生
@@ -58,14 +68,16 @@ bool EventLoop::start(){
 }
 
 void EventLoop::stop(){
-    printf("stop!");
+    // printf("stop!");
     int efd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-    printf("worker thread start..., efd = %d\n", efd);
+    // printf("worker thread start..., efd = %d\n", efd);
     int number = 1;
-    for (int i = 1; i < 10; i++) {
-        int size = eventfd_write(efd, (eventfd_t)number);
-        printf("i = %d, size = %d, errno = %d\n", i, size, errno);
-    }
+    int size = eventfd_write(efd, (eventfd_t)number);
+    printf("size = %d, errno = %d\n", size, errno);
+    // for (int i = 1; i < 10; i++) {
+    //     int size = eventfd_write(efd, (eventfd_t)number);
+    //     printf("i = %d, size = %d, errno = %d\n", i, size, errno);
+    // }
     printf("worker thread stop...\n");
     return;
 }
@@ -89,4 +101,77 @@ bool EventLoop::unRegistered(int fd){
         return true;
     }
     return false;
+}
+
+void  EventLoop::worker(int p_data) {
+    int* event_fd = &p_data;
+    printf("worker thread start..., event_fd = %d\n", *event_fd);
+    // sleep(1);
+    return ;
+}
+
+EventHandler &EventHandler::setOnRegistered(EventHandler::HandlerFunc func) {
+    mOnRegistered = func;
+    return *this;
+}
+
+EventHandler &EventHandler::setOnUnRegistered(HandlerFunc func) {
+    mOnUnRegistered = func;
+    return *this;
+}
+
+EventHandler &EventHandler::setOnEpollIn(HandlerFunc func) {
+    mOnEpollIn = func;
+    return *this;
+}
+
+EventHandler &EventHandler::setOnEpollOut(HandlerFunc func) {
+    mOnEpollOut = func;
+    return *this;
+}
+
+EventHandler &EventHandler::setOnEpollHup(HandlerFunc func) {
+    mOnEpollHup = func;
+    return *this;
+}
+
+EventHandler &EventHandler::setOnEpollError(HandlerFunc func) {
+    mOnEpollError = func;
+    return *this;
+}
+
+void EventHandler::onRegistered(int fd) {
+    if (mOnRegistered != nullptr) {
+        mOnRegistered(fd);
+    }
+}
+
+void EventHandler::onUnRegistered(int fd) {
+    if (mOnUnRegistered != nullptr) {
+        mOnUnRegistered(fd);
+    }
+}
+
+void EventHandler::onEpollIn(int fd) {
+    if (mOnEpollIn != nullptr) {
+        mOnEpollIn(fd);
+    }
+}
+
+void EventHandler::onEpollOut(int fd) {
+    if (mOnEpollOut != nullptr) {
+        mOnEpollOut(fd);
+    }
+}
+
+void EventHandler::onEpollHup(int fd) {
+    if (mOnEpollHup != nullptr) {
+        mOnEpollHup(fd);
+    }
+}
+
+void EventHandler::onEpollError(int fd) {
+    if (mOnEpollError != nullptr) {
+        mOnEpollError(fd);
+    }
 }
