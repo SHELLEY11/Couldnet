@@ -10,6 +10,9 @@ void read_from_pipe(int fd)
 {
     char message[100];
     read(fd,message,100);
+    if (!message) {
+      printf("read none\n");
+    }
     printf("read from pipe:%s",message);
 }
  
@@ -43,13 +46,18 @@ int main(void){
           //子进程
           dup2(fd[1], STDOUT_FILENO);
           close(fd[0]);//关闭子进程读端
-          write_to_pipe(fd[1]);//子进程写
+          // write_to_pipe(fd[1]);//子进程写
           execvp(arglist[0], arglist);    // shell
           exit(0);
        default:
           //父进程
           close(fd[0]);//关闭父进程写端
-          read_from_pipe(fd[0]);//父进程读
+          // read_from_pipe(fd[0]);//父进程读
+          int i = 0;
+          while(i < 5){
+            read_from_pipe(fd[0]);
+            i++;
+          }
           wait (&stat_val); //等待子进程
           exit(0);
     }
