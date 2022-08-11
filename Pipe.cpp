@@ -8,12 +8,13 @@
 /*读管道*/
 void read_from_pipe(int fd)
 {
-    char message[100];
-    read(fd,message,100);
+    char message[10000];
+    memset(message, 0, 10000);
+    read(fd,message,10000);
     if (!message) {
       printf("read none\n");
     }
-    printf("read from pipe:%s",message);
+    printf("read from pipe:%s\n",message);
 }
  
 /*写管道*/
@@ -28,8 +29,7 @@ int main(void){
     int fd[2];
     pid_t pid;
     int stat_val;
-    char *arglist[5] = {"ls","-l","-a"};
-    
+    char* arglist[] = {"ls","-l","-a",NULL};
     if(pipe(fd))
     {
        printf("create pipe failed!\n");
@@ -48,13 +48,14 @@ int main(void){
           close(fd[0]);//关闭子进程读端
           // write_to_pipe(fd[1]);//子进程写
           execvp(arglist[0], arglist);    // shell
+          //system("ls");
           exit(0);
        default:
           //父进程
-          close(fd[0]);//关闭父进程写端
-          // read_from_pipe(fd[0]);//父进程读
-          int i = 0;
-          while(i < 5){
+          close(fd[1]);//关闭父进程写端
+          //read_from_pipe(fd[0]);//父进程读
+         int i = 0;
+          while(arglist[i]){
             read_from_pipe(fd[0]);
             i++;
           }
