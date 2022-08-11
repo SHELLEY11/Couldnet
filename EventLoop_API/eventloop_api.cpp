@@ -12,6 +12,10 @@
 #include "eventloop_api.h"
 // #include <iostream>
 // using namespace std;
+
+#define EPOLL_FD_INVALID -1
+#define INIT_EVENTS_SIZE 512
+
 static const int EPOLL_MAX_EVENTS = 16;
 
 EventLoop::EventLoop()
@@ -54,6 +58,18 @@ bool EventLoop::start(){
             return false;
         }
         for (int i = 0; i < len; i++) {
+            if (events[i].events == EPOLLERR){
+                printf("fd%d Error\n", i);
+                return false;
+            }
+            if (events[i].events == EPOLLHUP){
+                printf("event_fd%d Hang up\n", i);
+                return false;
+            }
+            if (events[i].events == EPOLLOUT){
+                printf("event_fd%d can write\n", i);
+                return false;
+            }
             if (events[i].events == EPOLLIN) {
                 eventfd_read(event_fd, &count);
                 if (eventfd_read(event_fd, &count) < 0){
@@ -69,10 +85,10 @@ bool EventLoop::start(){
 
 void EventLoop::stop(){
     // printf("stop!");
-    int efd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    // int efd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
     // printf("worker thread start..., efd = %d\n", efd);
     int number = 1;
-    int size = eventfd_write(efd, (eventfd_t)number);
+    int size = eventfd_write(event_fd, (eventfd_t)number);
     printf("size = %d, errno = %d\n", size, errno);
     // for (int i = 1; i < 10; i++) {
     //     int size = eventfd_write(efd, (eventfd_t)number);
